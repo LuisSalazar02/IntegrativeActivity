@@ -95,6 +95,7 @@ class CarAgent(mesa.Agent):
             self.model.grid.move_agent(self, self.path[self.path_pointer])
 
             self.path_pointer += 1
+            self.steps += 1
         else:
             if (self.path_pointer < len(self.path)):
                 neighborhood = self.model.grid.get_neighborhood(
@@ -114,8 +115,9 @@ class CarAgent(mesa.Agent):
                     self.model.grid.move_agent(self, self.path[self.path_pointer])
                     self.path_pointer += 1
 
-        self.steps += 1
-
+                self.steps += 1
+            elif (self.path_pointer == len(self.path)):
+                self.model.grid.properties["parking_spot"].set_cell(self.pos, 0)
 
 class SemaphoreAgent(mesa.Agent):
     def __init__(self, model, controlled_cells, state):
