@@ -6,6 +6,7 @@ class CarAgent(mesa.Agent):
         super().__init__(model)
         self.steps = 0
         self.path = []
+        self.path_pointer = 1
 
     def get_directions(self, point):
         directions = []
@@ -14,6 +15,24 @@ class CarAgent(mesa.Agent):
                 min(start[1], end[1]) <= point[1] <= max(start[1], end[1])):
                 directions.append(direction)
         return directions if directions else ["No direction found"]
+    
+    def get_directions_neighbors(self, point, coordinates):
+
+        possible_direction = self.get_directions(point)
+
+        filtered_neighbors = coordinates
+
+        for direction in possible_direction:
+            if (direction == "up"):
+                filtered_neighbors = [coord for coord in filtered_neighbors if coord[0] <= point[0]]
+            elif (direction == "down"):
+                filtered_neighbors = [coord for coord in filtered_neighbors if coord[0] >= point[0]]
+            elif (direction == "left"):
+                filtered_neighbors = [coord for coord in filtered_neighbors if coord[1] <= point[1]]
+            elif (direction == "right"):
+                filtered_neighbors = [coord for coord in filtered_neighbors if coord[1] >= point[1]]
+
+        return filtered_neighbors
 
     def get_building_by_coodinate(self, coordinate):
         for key, value in self.model.parking_spot_dict.items():
@@ -30,17 +49,7 @@ class CarAgent(mesa.Agent):
         
         filtered_coordinates = [coord for coord in possible_steps if coord not in self.model.structure_arr]
 
-        possible_direction = self.get_directions(coordinate)
-
-        for direction in possible_direction:
-            if (direction == "up"):
-                filtered_coordinates = [coord for coord in filtered_coordinates if coord[0] <= coordinate[0]]
-            elif (direction == "down"):
-                filtered_coordinates = [coord for coord in filtered_coordinates if coord[0] >= coordinate[0]]
-            elif (direction == "left"):
-                filtered_coordinates = [coord for coord in filtered_coordinates if coord[1] <= coordinate[1]]
-            elif (direction == "right"):
-                filtered_coordinates = [coord for coord in filtered_coordinates if coord[1] >= coordinate[1]]
+        filtered_coordinates = self.get_directions_neighbors(coordinate, filtered_coordinates)
         
         return filtered_coordinates
 
@@ -71,6 +80,8 @@ class CarAgent(mesa.Agent):
         return []
     
     def move(self):
+        print(self.pos)
+
         if(self.steps == 0):
             building = self.get_building_by_coodinate(self.pos)
 
@@ -80,21 +91,31 @@ class CarAgent(mesa.Agent):
                 possible_parking_spots = [coord for spots in self.model.parking_spot_dict.values() for coord in spots]
 
             self.path = self.bfs(self.pos, possible_parking_spots)
-            print(self.path)
 
-        '''
+            self.model.grid.move_agent(self, self.path[self.path_pointer])
 
-        if (self.steps < 1):
-            self.steps += 1
-            possible_steps = self.model.grid.get_neighborhood(
-                self.pos, moore=False, include_center=False
-            )
-            
-            valid_step = [coord for coord in possible_steps if coord not in self.model.structure_arr]
+            self.path_pointer += 1
+        else:
+            if (self.path_pointer < len(self.path)):
+                neighborhood = self.model.grid.get_neighborhood(
+                    self.pos, moore=False, include_center=False
+                )
 
-            self.model.grid.move_agent(self, valid_step[0])
+                filtered_neighborhood = self.get_directions_neighbors(self.pos, neighborhood)
 
-        '''
+                move = True
+
+                for coord in filtered_neighborhood:
+                    if (self.model.grid.properties["semaphore"].data[coord] == 1):
+                        move = False
+                        break
+                
+                if(move):
+                    self.model.grid.move_agent(self, self.path[self.path_pointer])
+                    self.path_pointer += 1
+
+        self.steps += 1
+
 
 class SemaphoreAgent(mesa.Agent):
     def __init__(self, model, controlled_cells, state):
