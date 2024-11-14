@@ -1,5 +1,6 @@
 import mesa
-from .agents import SemaphoreAgent
+import numpy as np
+from .agents import SemaphoreAgent, CarAgent
 
 class CityModel(mesa.Model):
     def __init__(self, car_count, seed=None):
@@ -14,7 +15,7 @@ class CityModel(mesa.Model):
             (2,8), (3,8), (4,8), (7,8), (9,8), (10,8), (11,8), (16,8), (17,8), (20,8), (21,8),
             (2,9), (3,9), (4,9), (7,9), (8,9), (9,9), (10,9), (11,9), (16,9), (17,9), (20,9),
             (2,10), (3,10), (7,10), (8,10), (9,10), (10,10), (17,10), (20,10), (21,10),
-            (2,11), (3,11), (7,11), (8,11), (9,11), (10,11), (11,11), (16,11), (17,11), (20,11), (21,11),
+            (2,11), (3,11), (4,11), (7,11), (8,11), (9,11), (10,11), (11,11), (16,11), (17,11), (20,11), (21,11),
             (13,13), (14,13),
             (13,14), (14,14),
             (2,16), (3,16), (4,16), (5,16), (8,16), (9,16), (10,16), (11,16), (16,16), (17,16), (18,16), (19,16), (20,16), (21,16),
@@ -38,21 +39,42 @@ class CityModel(mesa.Model):
             11:[(19,20)]
         }
         self.semaphore_arr = [
-            [[(17, 0), (17, 1)], True],
-            [[(2,6), (2,7)], True],
-            [[(7,6), (7,7)], True],
-            [[(21,6), (21,7)], True],
-            [[(16, 19), (16, 20)], True],
-            [[(1,8), (0,8)], False],
-            [[(6,8), (5,8)], False],
-            [[(15,17), (14,17)], False],
-            [[(19,2), (18,2)], False],
-            [[(23,5), (22,5)], False]
+            [[(17, 0), (17, 1)], False],
+            [[(2,6), (2,7)], False],
+            [[(7,6), (7,7)], False],
+            [[(21,6), (21,7)], False],
+            [[(16, 19), (16, 20)], False],
+            [[(1,8), (0,8)], True],
+            [[(6,8), (5,8)], True],
+            [[(15,17), (14,17)], True],
+            [[(19,2), (18,2)], True],
+            [[(23,5), (22,5)], True]
         ]
-        global_steps = 0
-        self.structure_layer = mesa.space.PropertyLayer("structure", self.width, self.height, 0)
-        self.parking_spot_layer = mesa.space.PropertyLayer("parking_spot", self.width, self.height, 0)
-        self.semaphore_layer = mesa.space.PropertyLayer("semaphore", self.width, self.height, 0)
+        self.directions_dict = {
+            ((0, 0), (1, 23)): "left",
+            ((0, 0), (23, 1)): "down",
+            ((22,0), (23,23)): "right",
+            ((0,22), (23,23)): "up",
+
+            ((1,6), (11,7)): "up",
+            ((16,6), (22,7)): "down",
+            ((16,18), (21,19)): "up",
+
+            ((5,7), (6,11)): "left",
+            ((6,15), (7,21)): "left",
+            ((18,1), (19,5)): "left",
+            ((18,8), (19,12)): "right",
+
+            ((2,12), (22,13)): "down",
+            ((1,14), (21,15)): "up",
+
+            ((12,1), (13,21)): "left",
+            ((14,2), (15,22)): "right"
+        }
+        self.global_steps = 0
+        self.structure_layer = mesa.space.PropertyLayer("structure", self.width, self.height, np.float64(0))
+        self.parking_spot_layer = mesa.space.PropertyLayer("parking_spot", self.width, self.height, np.float64(0))
+        self.semaphore_layer = mesa.space.PropertyLayer("semaphore", self.width, self.height, np.float64(0))
         self.grid = mesa.space.MultiGrid(self.width, self.height, False, (self.structure_layer, self.parking_spot_layer, self.semaphore_layer))
         self.running = True
         self.datacollector = mesa.DataCollector()
@@ -69,10 +91,18 @@ class CityModel(mesa.Model):
         # Create semaphore agents
         for values in self.semaphore_arr:
             SemaphoreAgent(self, values[0], values[1])
-        
-        def step(self):
-            self.datacollector.collect(self)
-            global_steps += 1
-            semaphore_agents = model.agents_by_type(SemaphoreAgent)
-            for agent in semaphore_agents:
-                agent.shuffle_do("toggle_state")
+
+        all_parking_spots = [coord for spots in self.parking_spot_dict.values() for coord in spots]
+        for _ in range(car_count):
+            random_num = self.random.randrange(len(all_parking_spots))
+            a = CarAgent(self)
+            self.grid.place_agent(a, all_parking_spots[random_num])
+            all_parking_spots.pop(random_num)
+
+    def step(self):
+        self.datacollector.collect(self)
+
+        self.global_steps += 1
+
+        self.agents_by_type[SemaphoreAgent].shuffle_do("toggle_state")
+        self.agents_by_type[CarAgent].shuffle_do("move")
