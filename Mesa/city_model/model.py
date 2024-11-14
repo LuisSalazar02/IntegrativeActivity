@@ -1,7 +1,5 @@
 import mesa
-import seaborn as sns
-import numpy as np
-import pandas as pd
+from .agents import SemaphoreAgent
 
 class CityModel(mesa.Model):
     def __init__(self, car_count, seed=None):
