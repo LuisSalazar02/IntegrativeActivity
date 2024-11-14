@@ -38,16 +38,16 @@ class CityModel(mesa.Model):
             11:[(19,20)]
         }
         self.semaphore_arr = [
-            [(17, 0), (17, 1)],
-            [(2,6), (2,7)],
-            [(7,6), (7,7)],
-            [(21,6), (21,7)],
-            [(16, 19), (16, 20)],
-            [(1,8), (0,8)],
-            [(6,8), (5,8)],
-            [(15,17), (14,17)],
-            [(19,2), (18,2)],
-            [(23,5), (22,5)]
+            [[(17, 0), (17, 1)], True],
+            [[(2,6), (2,7)], True],
+            [[(7,6), (7,7)], True],
+            [[(21,6), (21,7)], True],
+            [[(16, 19), (16, 20)], True],
+            [[(1,8), (0,8)], False],
+            [[(6,8), (5,8)], False],
+            [[(15,17), (14,17)], False],
+            [[(19,2), (18,2)], False],
+            [[(23,5), (22,5)], False]
         ]
         global_steps = 0
         self.structure_layer = mesa.space.PropertyLayer("structure", self.width, self.height, 0)
@@ -67,8 +67,8 @@ class CityModel(mesa.Model):
                 self.grid.properties["parking_spot"].set_cell((x, y), key)
 
         # Create semaphore agents
-        for controlled_cells in self.semaphore_arr:
-            SemaphoreAgent(self, controlled_cells)
+        for values in self.semaphore_arr:
+            SemaphoreAgent(self, values[0], values[1])
         
         def step(self):
             self.datacollector.collect(self)

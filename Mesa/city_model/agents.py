@@ -5,9 +5,9 @@ class CarAgent(mesa.Agent):
         self.speed = 1
 
 class SemaphoreAgent(mesa.Agent):
-    def __init__(self, model, controlled_cells):
+    def __init__(self, model, controlled_cells, state):
         # A state equal to True means green
-        self.state = model.random.choice([True, False])
+        self.state = state
         self.controlled_cells = controlled_cells
         for cell in self.controlled_cells:
             model.grid.properties["semaphore"].set_cell(cell, self.state)
