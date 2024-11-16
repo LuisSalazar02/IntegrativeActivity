@@ -1,6 +1,6 @@
 import mesa
 import numpy as np
-from .agents import SemaphoreAgent, CarAgent
+from agents import SemaphoreAgent, CarAgent
 
 class CityModel(mesa.Model):
     def __init__(self, car_count, seed=None):
