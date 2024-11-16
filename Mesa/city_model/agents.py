@@ -7,32 +7,25 @@ class CarAgent(mesa.Agent):
         self.steps = 0
         self.path = []
         self.path_pointer = 1
+        self.active_route = False
 
-    def get_directions(self, point):
-        directions = []
-        for (start, end), direction in self.model.directions_dict.items():
+    def get_neighbor_data(self, point):
+        direction = None
+        command = None
+        
+        for (start, end), dir_val in self.model.directions_dict.items():
             if (min(start[0], end[0]) <= point[0] <= max(start[0], end[0]) and
                 min(start[1], end[1]) <= point[1] <= max(start[1], end[1])):
-                directions.append(direction)
-        return directions if directions else ["No direction found"]
-    
-    def get_directions_neighbors(self, point, coordinates):
+                direction = dir_val
+                break
+        
+        for (start, end), cmd_val in self.model.commands_dict.items():
+            if (min(start[0], end[0]) <= point[0] <= max(start[0], end[0]) and
+                min(start[1], end[1]) <= point[1] <= max(start[1], end[1])):
+                command = cmd_val
+                break
 
-        possible_direction = self.get_directions(point)
-
-        filtered_neighbors = coordinates
-
-        for direction in possible_direction:
-            if (direction == "up"):
-                filtered_neighbors = [coord for coord in filtered_neighbors if coord[0] <= point[0]]
-            elif (direction == "down"):
-                filtered_neighbors = [coord for coord in filtered_neighbors if coord[0] >= point[0]]
-            elif (direction == "left"):
-                filtered_neighbors = [coord for coord in filtered_neighbors if coord[1] <= point[1]]
-            elif (direction == "right"):
-                filtered_neighbors = [coord for coord in filtered_neighbors if coord[1] >= point[1]]
-
-        return filtered_neighbors
+        return direction, command
 
     def get_building_by_coodinate(self, coordinate):
         for key, value in self.model.parking_spot_dict.items():
@@ -42,16 +35,36 @@ class CarAgent(mesa.Agent):
         return None
 
     def get_neighbors(self, coordinate):
+        base_patterns = {
+            1: [(-1, 0)],
+            2: [(-1, 0), (0, 1)],                  
+            3: [(-1, 0), (-1, 1)],
+            4: [(-1, 0), (0, 1), (-1, 1), (-1, -1)],
+            5: [(-1, 0), (-1, -1)],
+            6: [(-1, 0), (0, -1), (-1, 1), (-1, -1)]
+        }
 
-        possible_steps = self.model.grid.get_neighborhood(
-            coordinate, moore=False, include_center=False
-        )
-        
-        filtered_coordinates = [coord for coord in possible_steps if coord not in self.model.structure_arr]
+        def transform(direction, pattern):
+            if direction == 'up':
+                return [(dx, dy) for dx, dy in pattern]
+            elif direction == 'down':
+                return [(-dx, -dy) for dx, dy in pattern]
+            elif direction == 'left':
+                return [(-dy, dx) for dx, dy in pattern]
+            elif direction == 'right':
+                return [(dy, -dx) for dx, dy in pattern]
+            
+        direction, command = self.get_neighbor_data(coordinate)
+            
+        base_pattern = base_patterns[command]
 
-        filtered_coordinates = self.get_directions_neighbors(coordinate, filtered_coordinates)
+        transformed_pattern = transform(direction, base_pattern)
+    
+        filtered_neighbors = [(coordinate[0] + dx, coordinate[1] + dy) for dx, dy in transformed_pattern]
+
+        neighbors = [coord for coord in filtered_neighbors if coord not in self.model.structure_arr]
         
-        return filtered_coordinates
+        return neighbors
 
     def bfs(self, start, target_nodes):
         queue = deque([start])
@@ -82,27 +95,34 @@ class CarAgent(mesa.Agent):
     def move(self):
         print(self.pos)
 
-        if(self.steps == 0):
+        if(not self.active_route):
             building = self.get_building_by_coodinate(self.pos)
+
+            print(building)
 
             if (building):
                 possible_parking_spots = [coord for key, spots in self.model.parking_spot_dict.items() if key != building for coord in spots]
             else:
                 possible_parking_spots = [coord for spots in self.model.parking_spot_dict.values() for coord in spots]
 
+            print(possible_parking_spots)
+
             self.path = self.bfs(self.pos, possible_parking_spots)
 
-            self.model.grid.move_agent(self, self.path[self.path_pointer])
+            print(self.path)
 
-            self.path_pointer += 1
-            self.steps += 1
+            agents_neighborhood = self.model.grid.get_neighbors(
+                self.pos, moore=False, include_center=False
+            )
+
+            neighbor_agents = [agent.pos for agent in agents_neighborhood]
+
+            if (self.path[self.path_pointer] not in neighbor_agents):
+                self.model.grid.move_agent(self, self.path[self.path_pointer])
+                self.path_pointer += 1
         else:
             if (self.path_pointer < len(self.path)):
-                neighborhood = self.model.grid.get_neighborhood(
-                    self.pos, moore=False, include_center=False
-                )
-
-                filtered_neighborhood = self.get_directions_neighbors(self.pos, neighborhood)
+                filtered_neighborhood = self.get_neighbors(self.pos)
 
                 move = True
 
@@ -115,9 +135,15 @@ class CarAgent(mesa.Agent):
                     self.model.grid.move_agent(self, self.path[self.path_pointer])
                     self.path_pointer += 1
 
-                self.steps += 1
             elif (self.path_pointer == len(self.path)):
                 self.model.grid.properties["parking_spot"].set_cell(self.pos, 0)
+                for key in list(self.model.parking_spot_dict.keys()):
+                    if self.pos in self.model.parking_spot_dict[key]:
+                        self.model.parking_spot_dict[key].remove(self.pos)
+                        if not self.model.parking_spot_dict[key]:
+                            del self.model.parking_spot_dict[key]
+
+        self.steps += 1
 
 class SemaphoreAgent(mesa.Agent):
     def __init__(self, model, controlled_cells, state):
