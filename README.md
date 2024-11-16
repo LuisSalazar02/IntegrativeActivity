@@ -1,10 +1,10 @@
 # Unity Project 
 
 ## Team Members:
-- Jorge Rodrigo Colín Rubio          
+- Jorge Rodrigo Colín Rubio            A01662960
 - Diego Emiliano Muñoz Bernal          A01657487
-- Juan Carlos Romero Domínguez          
-- Luis Enrique Salazar Pérez          
+- Juan Carlos Romero Domínguez         A01658390
+- Luis Enrique Salazar Pérez           A00833460
 
 ## Prefab Credits:
 
