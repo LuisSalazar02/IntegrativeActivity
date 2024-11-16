@@ -8,6 +8,7 @@ class CarAgent(mesa.Agent):
         self.path = []
         self.path_pointer = 1
         self.active_route = False
+        self.building = 0
 
     def get_neighbor_data(self, point):
         direction = None
@@ -93,26 +94,20 @@ class CarAgent(mesa.Agent):
         return []
     
     def move(self):
-        print(self.pos)
+        if(self.active_route == False):
+            self.building = self.get_building_by_coodinate(self.pos)
 
-        if(not self.active_route):
-            building = self.get_building_by_coodinate(self.pos)
-
-            print(building)
-
-            if (building):
-                possible_parking_spots = [coord for key, spots in self.model.parking_spot_dict.items() if key != building for coord in spots]
+            if (self.building):
+                possible_parking_spots = [coord for key, spots in self.model.parking_spot_dict.items() if key != self.building for coord in spots]
             else:
                 possible_parking_spots = [coord for spots in self.model.parking_spot_dict.values() for coord in spots]
 
-            print(possible_parking_spots)
-
             self.path = self.bfs(self.pos, possible_parking_spots)
 
-            print(self.path)
+            self.active_route = True
 
             agents_neighborhood = self.model.grid.get_neighbors(
-                self.pos, moore=False, include_center=False
+                self.pos, moore=True, include_center=False
             )
 
             neighbor_agents = [agent.pos for agent in agents_neighborhood]
@@ -120,8 +115,57 @@ class CarAgent(mesa.Agent):
             if (self.path[self.path_pointer] not in neighbor_agents):
                 self.model.grid.move_agent(self, self.path[self.path_pointer])
                 self.path_pointer += 1
+                self.steps += 1
         else:
-            if (self.path_pointer < len(self.path)):
+            if (self.path_pointer == len(self.path) - 1):
+                if (not any(self.path[self.path_pointer] in spots for spots in self.model.parking_spot_dict.values())):
+                    self.path_pointer = 1
+
+                    if (self.building):
+                        possible_parking_spots = [coord for key, spots in self.model.parking_spot_dict.items() if key != self.building for coord in spots]
+                    else:
+                        possible_parking_spots = [coord for spots in self.model.parking_spot_dict.values() for coord in spots]
+
+                    self.path = self.bfs(self.pos, possible_parking_spots)
+
+                    agents_neighborhood = self.model.grid.get_neighbors(
+                        self.pos, moore=True, include_center=False
+                    )
+
+                    neighbor_agents = [agent.pos for agent in agents_neighborhood]
+
+                    if (self.path[self.path_pointer] not in neighbor_agents):
+                        self.model.grid.move_agent(self, self.path[self.path_pointer])
+                        self.path_pointer += 1
+                else:
+                    filtered_neighborhood = self.get_neighbors(self.pos)
+
+                    move = True
+
+                    for coord in filtered_neighborhood:
+                        if (self.model.grid.properties["semaphore"].data[coord] == 1):
+                            move = False
+                            break
+
+                    agents_neighborhood = self.model.grid.get_neighbors(
+                        self.pos, moore=True, include_center=False
+                    )
+
+                    neighbor_agents = [agent.pos for agent in agents_neighborhood]
+
+                    if (self.path[self.path_pointer] in neighbor_agents):
+                        move = False
+                    
+                    if(move):
+                        self.model.grid.move_agent(self, self.path[self.path_pointer])
+                        self.path_pointer += 1
+                        self.model.grid.properties["parking_spot"].set_cell(self.pos, 0)
+                        for key in list(self.model.parking_spot_dict.keys()):
+                            if self.pos in self.model.parking_spot_dict[key]:
+                                self.model.parking_spot_dict[key].remove(self.pos)
+                                if not self.model.parking_spot_dict[key]:
+                                    del self.model.parking_spot_dict[key]
+            elif (self.path_pointer < len(self.path)):
                 filtered_neighborhood = self.get_neighbors(self.pos)
 
                 move = True
@@ -130,20 +174,22 @@ class CarAgent(mesa.Agent):
                     if (self.model.grid.properties["semaphore"].data[coord] == 1):
                         move = False
                         break
+
+                agents_neighborhood = self.model.grid.get_neighbors(
+                    self.pos, moore=True, include_center=False
+                )
+
+                neighbor_agents = [agent.pos for agent in agents_neighborhood]
+
+                if (self.path[self.path_pointer] in neighbor_agents):
+                    move = False
                 
                 if(move):
                     self.model.grid.move_agent(self, self.path[self.path_pointer])
                     self.path_pointer += 1
-
-            elif (self.path_pointer == len(self.path)):
-                self.model.grid.properties["parking_spot"].set_cell(self.pos, 0)
-                for key in list(self.model.parking_spot_dict.keys()):
-                    if self.pos in self.model.parking_spot_dict[key]:
-                        self.model.parking_spot_dict[key].remove(self.pos)
-                        if not self.model.parking_spot_dict[key]:
-                            del self.model.parking_spot_dict[key]
-
-        self.steps += 1
+            
+            if (self.path_pointer != len(self.path)):
+                self.steps += 1
 
 class SemaphoreAgent(mesa.Agent):
     def __init__(self, model, controlled_cells, state):

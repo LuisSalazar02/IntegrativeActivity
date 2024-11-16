@@ -43,7 +43,7 @@ class CityModel(mesa.Model):
             [[(2,6), (2,7)], False],
             [[(7,6), (7,7)], False],
             [[(21,6), (21,7)], False],
-            [[(16,19), (16,20)], False],
+            [[(16,18), (16,19)], False],
             [[(1,8), (0,8)], True],
             [[(6,8), (5,8)], True],
             [[(15,17), (14,17)], True],
@@ -227,7 +227,7 @@ class CityModel(mesa.Model):
             ((19,20), (19,20)): "left",
             #Down
             ((0,0), (21,1)): "down",
-            ((2,12), (11,3)): "down",
+            ((2,12), (11,13)): "down",
             ((12,12), (14,12)): "down",
             ((16,12), (21,13)): "down",
             ((16,6), (21,7)): "down",
@@ -260,24 +260,22 @@ class CityModel(mesa.Model):
             self.grid.properties["structure"].set_cell((x, y), 1)
 
         # Create parking spot grid
-        for key, value in self.parking_spot_dict.items():
-            for x, y in value:
-                self.grid.properties["parking_spot"].set_cell((x, y), key)
+        for coordinates in self.parking_spot_dict.values():
+            for (x, y) in coordinates:
+                self.grid.properties["parking_spot"].set_cell((x, y), 1)
 
         # Create semaphore agents
         for values in self.semaphore_arr:
             SemaphoreAgent(self, values[0], values[1])
 
-        '''
         all_parking_spots = [coord for spots in self.parking_spot_dict.values() for coord in spots]
         for _ in range(car_count):
             random_num = self.random.randrange(len(all_parking_spots))
             a = CarAgent(self)
             self.grid.place_agent(a, all_parking_spots[random_num])
             all_parking_spots.pop(random_num)
-        '''
 
-        self.grid.place_agent(CarAgent(self), (9,2))
+        #self.grid.place_agent(CarAgent(self), (6,5))
         
     def step(self):
         self.datacollector.collect(self)
