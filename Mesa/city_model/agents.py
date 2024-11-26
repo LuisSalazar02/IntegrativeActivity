@@ -192,10 +192,9 @@ class CarAgent(mesa.Agent):
                 self.steps += 1
 
 class SemaphoreAgent(mesa.Agent):
-    def __init__(self, model, id, controlled_cells, state):
+    def __init__(self, model, controlled_cells, state):
         super().__init__(model)
         # A state equal to False means green
-        self.id = id
         self.state = state
         self.controlled_cells = controlled_cells
         for cell in self.controlled_cells:

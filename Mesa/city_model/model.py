@@ -265,8 +265,8 @@ class CityModel(mesa.Model):
                 self.grid.properties["parking_spot"].set_cell((x, y), 1)
 
         # Create semaphore agents
-        for index, values in enumerate(self.semaphore_arr):
-            SemaphoreAgent(self, index, values[0], values[1])
+        for values in self.semaphore_arr:
+            SemaphoreAgent(self, values[0], values[1])
 
         all_parking_spots = [coord for spots in self.parking_spot_dict.values() for coord in spots]
         for _ in range(car_count):
