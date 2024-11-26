@@ -11,7 +11,7 @@ last_state = []
 def get_positions():
     data = []
     for agent in model.agents_by_type[CarAgent]:
-        data.append({"x": agent.pos[0], "z": agent.pos[1]})
+        data.append({"x": agent.pos[0], "y": agent.pos[1]})
     return jsonify(data)
 
 @app.route("/states")
