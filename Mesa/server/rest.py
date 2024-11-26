@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.route("/positions")
 def get_positions():
-    data = {"agents":[], "semaphores":{}}
+    data = {"agents":[], "semaphores":[]}
     for agent in model.agents_by_type[CarAgent]:
         data["agents"].append(agent.pos)
     for semaphore in model.agents_by_type[SemaphoreAgent]:
