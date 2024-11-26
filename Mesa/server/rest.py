@@ -7,11 +7,16 @@ app = Flask(__name__)
 
 @app.route("/positions")
 def get_positions():
-    data = {"agents":[], "semaphores":[]}
+    data = []
     for agent in model.agents_by_type[CarAgent]:
-        data["agents"].append(agent.pos)
+        data.append({"x": agent.pos[0], "z": agent.pos[1]})
+    return jsonify(data)
+
+@app.route("/states")
+def get_states():
+    data = []
     for semaphore in model.agents_by_type[SemaphoreAgent]:
-        data["semaphores"].append(semaphore.state)
+        data.append({"state": semaphore.state})
     model.step()
     return jsonify(data)
 
