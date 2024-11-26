@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, Response
 from ..city_model.model import CityModel
 from ..city_model.agents import CarAgent, SemaphoreAgent
 
@@ -17,8 +17,12 @@ def get_states():
     data = []
     for semaphore in model.agents_by_type[SemaphoreAgent]:
         data.append({"state": semaphore.state})
-    model.step()
     return jsonify(data)
+
+@app.route("/step")
+def update_step():
+    model.step()
+    return Response(status=200)
 
 if __name__ == "__main__":
     app.run(host ='127.0.0.1', port = 8000, debug=True)
