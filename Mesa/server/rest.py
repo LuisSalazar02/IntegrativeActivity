@@ -5,6 +5,8 @@ from ..city_model.agents import CarAgent, SemaphoreAgent
 model = CityModel(5)
 app = Flask(__name__)
 
+last_state = []
+
 @app.route("/positions")
 def get_positions():
     data = []
@@ -14,10 +16,16 @@ def get_positions():
 
 @app.route("/states")
 def get_states():
+    global last_state
     data = []
     for semaphore in model.agents_by_type[SemaphoreAgent]:
         data.append({"state": semaphore.state})
-    return jsonify(data)
+
+    if data != last_state:
+        last_state = data
+        return jsonify(data)
+    else:
+        return jsonify(None)
 
 @app.route("/step")
 def update_step():
