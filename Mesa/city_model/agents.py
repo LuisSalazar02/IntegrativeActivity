@@ -94,6 +94,26 @@ class CarAgent(mesa.Agent):
         return []
     
     def move(self):
+        parking_spot_num = {
+            (9,2):1,
+            (2,3):2,
+            (17,3):3,
+            (11,4):4,
+            (20,4):5,
+            (6,5):6,
+            (8,8):7,
+            (21,9):8,
+            (4,10):9,
+            (11,10):10,
+            (16,10):11,
+            (2,17):12,
+            (17,17):13,
+            (19,17):14,
+            (5,20):15,
+            (8,20):16,
+            (19,20):17
+        }
+
         if(self.active_route == False):
             self.building = self.get_building_by_coodinate(self.pos)
 
@@ -105,6 +125,8 @@ class CarAgent(mesa.Agent):
             self.path = self.bfs(self.pos, possible_parking_spots)
 
             self.active_route = True
+
+            print("Started in parking spot:", parking_spot_num[self.path[0]], "moving to parking spot:", parking_spot_num[self.path[-1]])
 
             agents_neighborhood = self.model.grid.get_neighbors(
                 self.pos, moore=True, include_center=False
@@ -127,6 +149,8 @@ class CarAgent(mesa.Agent):
                         possible_parking_spots = [coord for spots in self.model.parking_spot_dict.values() for coord in spots]
 
                     self.path = self.bfs(self.pos, possible_parking_spots)
+
+                    print("Started in position:", self.path[0], "moving to parking spot:", parking_spot_num[self.path[-1]])
 
                     agents_neighborhood = self.model.grid.get_neighbors(
                         self.pos, moore=True, include_center=False

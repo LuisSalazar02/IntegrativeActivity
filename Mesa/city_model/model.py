@@ -274,8 +274,6 @@ class CityModel(mesa.Model):
             a = CarAgent(self)
             self.grid.place_agent(a, all_parking_spots[random_num])
             all_parking_spots.pop(random_num)
-
-        #self.grid.place_agent(CarAgent(self), (6,5))
         
     def step(self):
         self.datacollector.collect(self)
